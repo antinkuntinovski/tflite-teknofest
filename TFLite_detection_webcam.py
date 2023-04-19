@@ -23,6 +23,10 @@ import time
 from threading import Thread
 import importlib.util
 import datetime
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import db
+import json
 
 # Define VideoStream class to handle streaming of video from webcam in separate processing thread
 # Source - Adrian Rosebrock, PyImageSearch: https://www.pyimagesearch.com/2015/12/28/increasing-raspberry-pi-fps-with-python-and-opencv/
@@ -34,7 +38,7 @@ class VideoStream:
         ret = self.stream.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
         ret = self.stream.set(3,resolution[0])
         ret = self.stream.set(4,resolution[1])
-            
+
         # Read first frame from the stream
         (self.grabbed, self.frame) = self.stream.read()
 
@@ -108,7 +112,7 @@ else:
 if use_TPU:
     # If user has specified the name of the .tflite file, use that name, otherwise use default 'edgetpu.tflite'
     if (GRAPH_NAME == 'detect.tflite'):
-        GRAPH_NAME = 'edgetpu.tflite'       
+        GRAPH_NAME = 'edgetpu.tflite'
 
 # Get path to current working directory
 CWD_PATH = os.getcwd()
@@ -164,6 +168,11 @@ freq = cv2.getTickFrequency()
 videostream = VideoStream(resolution=(imW,imH),framerate=30).start()
 time.sleep(1)
 
+cred = credentials.Certificate("mcadamdir-firebase-adminsdk-6nuh4-7e316c5ca6.json")
+firebase_admin.initialize_app(cred, {
+    'databaseURL': 'https://mcadamdir-default-rtdb.firebaseio.com'
+})
+
 #for frame1 in camera.capture_continuous(rawCapture, format="bgr",use_video_port=True):
 while True:
 
@@ -203,7 +212,7 @@ while True:
             xmin = int(max(1,(boxes[i][1] * imW)))
             ymax = int(min(imH,(boxes[i][2] * imH)))
             xmax = int(min(imW,(boxes[i][3] * imW)))
-            
+
             cv2.rectangle(frame, (xmin,ymin), (xmax,ymax), (10, 255, 0), 2)
 
             # Draw label
@@ -222,7 +231,7 @@ while True:
 
     # Calculate framerate
     t2 = cv2.getTickCount()
-    time1 = (t2-t1)/freq 
+    time1 = (t2-t1)/freq
     frame_rate_calc= 1/time1
 
     # Press 'q' to quit
@@ -235,17 +244,11 @@ while True:
     ts = datetime.datetime.now()
 ####
 
-    import firebase_admin
-    from firebase_admin import credentials
-    from firebase_admin import db
-    import json
+
     bus1_capacity = 40
     oran = (count) / bus1_capacity * 100
     oranstr = str(oran) + "%"
-    cred = credentials.Certificate("mcadamdir-firebase-adminsdk-6nuh4-7e316c5ca6.json")
-    firebase_admin.initialize_app(cred, {
-    'databaseURL': 'https://mcadamdir-default-rtdb.firebaseio.com'
-})
+
     ref = db.reference('/buses/bus1/kisi sayisi')
     now_str = ts.isoformat()
 
